@@ -82,6 +82,12 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 if __name__ == '__main__':
 
+        # Dictionary to store chat_ids for each user
+    user_chat_ids = {}
+
+    # Dictionary to store the user who requested the snap
+    snap_requests = {}
+
     # Load mqtt and bot info
     with open("application_configuration.yaml", "r") as config_file:
         c_ = yaml.safe_load(config_file)
@@ -97,30 +103,15 @@ if __name__ == '__main__':
     mqtt_client.subscribe(MQTT_TOPIC_IMG)
     mqtt_client.loop_start()  # Start the MQTT loop
 
-    # Global variable to store the bot instance
-    bot_instance = None
-
-    # Global variable to store the event loop
-    telegram_event_loop = None
-
-    # Dictionary to store chat_ids for each user
-    user_chat_ids = {}
-
-    # Dictionary to store the user who requested the snap
-    snap_requests = {}
-
     # Create the Telegram bot application
     app = ApplicationBuilder().token(c_['telegram_token']).build()
-
-    # Add handlers
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("snap", snap))  # Add the /snap command handler
+    app.add_handler(CommandHandler("snap", snap))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
-    # Store the bot instance in the global variable
+    # Global variable to store the bot instance
     bot_instance = app.bot
 
-    # Set the global event loop immediately after creating the bot
     telegram_event_loop = asyncio.get_event_loop()
 
     # Start the bot

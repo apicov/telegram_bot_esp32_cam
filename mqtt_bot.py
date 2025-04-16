@@ -17,10 +17,6 @@ async def send_photo_async(chat_id, img_bytes):
     except Exception as e:
         print(f"Error sending photo: {e}")
 
-#async def send_photo_async(chat_id, img_bytes):
-#    print("llego la imagen")
-#    await bot_instance.send_photo(chat_id=chat_id, photo=img_bytes, caption='Received Image')
-
 # Load mqtt and bot info 
 with open("private_data.json", "r") as read_file:
     data = json.load(read_file)
@@ -45,7 +41,6 @@ telegram_event_loop = None
 user_chat_ids = {}
 # Dictionary to store the user who requested the snap
 snap_requests = {}
-
 
 def on_message(client, userdata, message):
     print('mensaje')
@@ -130,11 +125,6 @@ mqtt_client.on_message = on_message
 mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
 mqtt_client.subscribe(MQTT_TOPIC_IMG)
 mqtt_client.loop_start()  # Start the MQTT loop
-
-# Run the MQTT client in a separate thread
-#mqtt_thread = threading.Thread(target=start_mqtt)
-#mqtt_thread.start()
-
 
 # Start the bot
 app.run_polling()

@@ -29,10 +29,6 @@ def on_message(client, userdata, message):
         # Open the image using Pillow
         img = Image.open(BytesIO(img_data))
 
-        # Optionally, you can perform some processing with Pillow here
-        # For example, resizing the image
-        #img = img.resize((100, 100))  # Resize to 100x100 pixels
-
         # Convert image to bytes for sending via Telegram
         img_bytes = BytesIO()
         img.save(img_bytes, format='JPEG')
@@ -54,11 +50,11 @@ def on_message(client, userdata, message):
                 del snap_requests[user_id]
 
 
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     user_chat_ids[user_id] = update.message.chat_id  # Store the chat_id for the user
     await update.message.reply_text("Hola")
+
 
 async def snap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
@@ -68,6 +64,7 @@ async def snap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     command = "snap"  # Define the command you want to send
     mqtt_client.publish(MQTT_TOPIC_CMD, command)
     await update.message.reply_text("Snap command sent!")
+
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Your existing handle_photo code...

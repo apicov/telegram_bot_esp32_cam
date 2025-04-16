@@ -83,7 +83,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == '__main__':
 
     # Load mqtt and bot info
-    with open("private_data.json", "r") as read_file:
+    with open("application_configuration.json", "r") as read_file:
         data = json.load(read_file)
 
     TOKEN = data['telegram_token']

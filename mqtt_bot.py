@@ -9,7 +9,7 @@ import asyncio
 
 async def send_photo_async(chat_id, img_bytes):
     """
-    Send the IMAGE_BYTES to the given CHAT_ID as a photo.
+    Send the IMAGE_BYTES as a photo to the given CHAT_ID.
     """
     print(f"{chat_id}: Preparing to send the photo")
     try:
@@ -78,14 +78,6 @@ async def snap(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Your existing handle_photo code...
     pass  # Implement your photo handling logic here
-
-
-# Function to run the MQTT client in a separate thread
-def start_mqtt():
-    # Create a new event loop for this thread
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    mqtt_client.loop_forever()
 
 
 if __name__ == '__main__':

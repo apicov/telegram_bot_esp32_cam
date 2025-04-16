@@ -6,23 +6,28 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import json
 import asyncio
-import threading
 
 async def send_photo_async(chat_id, img_bytes):
+    """
+    Send the IMAGE_BYTES to the given CHAT_ID as a photo.
+    """
+    print(f"{chat_id}: Preparing to send the photo")
     try:
-        print("Preparing to send the image...")
         img_bytes.seek(0)  # Ensure the BytesIO pointer is at the start
-        await bot_instance.send_photo(chat_id=chat_id, photo=img_bytes, caption='Received Image')
-        print("Image sent successfully.")
+        await bot_instance.send_photo(chat_id, img_bytes, caption='Received Image')
+        print(f"{chat_id}: The photo was sent")
     except Exception as e:
-        print(f"Error sending photo: {e}")
+        print(f"{chat_id}: ERROR sending photo: {e}")
 
 
 def on_message(client, userdata, message):
-    print('mensaje')
+    """
+    This function is called when the there's an incoming MESSAGE
+    from the MQTT CLIENT. If the message is an image, then that
+    image forwarded
+    """
+    print(f'Incoming message in {message.topic}')
     if message.topic == MQTT_TOPIC_IMG:
-        print('foto')
-
         # Decode the base64 image
         img_data = base64.b64decode(message.payload)
 
@@ -35,34 +40,38 @@ def on_message(client, userdata, message):
         img_bytes.seek(0)  # Move to the beginning of the BytesIO buffer
 
         # Create a list of user IDs to process
+        # TODO: To use a dictionary to store the users' requests
+        # is an error for Python prior v3.7 because they're
+        # unordered, so there are chances that the picture is
+        # forwarded to the wrong user. So why not use a list instead?
         user_ids_to_process = list(snap_requests.keys())
-        print(f"User IDs to process: {user_ids_to_process}")
-
         for user_id in user_ids_to_process:
             chat_id = user_chat_ids.get(user_id)
             if chat_id is not None:
-                print(f"Scheduling photo send to chat_id: {chat_id}")
                 try:
-                    future = asyncio.run_coroutine_threadsafe(send_photo_async(chat_id, img_bytes), telegram_event_loop)
-                    print("Coroutine scheduled.")
+                    asyncio.run_coroutine_threadsafe(send_photo_async(chat_id, img_bytes), telegram_event_loop)
+                    print(f"{chat_id}: Image scheduled to be sent")
                 except Exception as e:
                     print(f"Error scheduling coroutine: {e}")
                 del snap_requests[user_id]
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    user_chat_ids[user_id] = update.message.chat_id  # Store the chat_id for the user
+    """
+    Handler for the "start" command. It replies with the text "Hola".
+    """
     await update.message.reply_text("Hola")
 
 
 async def snap(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handler for the "snap" command. It forwards the command to the MQTT broker.
+    """
     user_id = update.message.from_user.id
     user_chat_ids[user_id] = update.message.chat_id  # Update the chat_id for the user
     snap_requests[user_id] = True  # Mark this user as having requested a snap
-    # Send the /snap command through MQTT
-    command = "snap"  # Define the command you want to send
-    mqtt_client.publish(MQTT_TOPIC_CMD, command)
+
+    mqtt_client.publish(MQTT_TOPIC_CMD, "snap")
     await update.message.reply_text("Snap command sent!")
 
 
@@ -123,7 +132,6 @@ if __name__ == '__main__':
     telegram_event_loop = asyncio.get_event_loop()
 
 
-    # Set up MQTT client
     mqtt_client.on_message = on_message
     mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
     mqtt_client.subscribe(MQTT_TOPIC_IMG)

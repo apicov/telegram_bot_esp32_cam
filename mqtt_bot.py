@@ -4,7 +4,7 @@ from PIL import Image
 import paho.mqtt.client as mqtt
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-import json
+import yaml
 import asyncio
 
 async def send_photo_async(chat_id, img_bytes):
@@ -83,19 +83,19 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == '__main__':
 
     # Load mqtt and bot info
-    with open("application_configuration.json", "r") as read_file:
-        data = json.load(read_file)
-
-    TOKEN = data['telegram_token']
+    with open("application_configuration.yaml", "r") as config_file:
+        c_ = yaml.safe_load(config_file)
 
     # MQTT settings
-    MQTT_BROKER = data['mqtt_broker_ip']
-    MQTT_PORT = data['mqtt_broker_port']
-    MQTT_TOPIC_CMD = "/camera/cmd"
-    MQTT_TOPIC_IMG = "/camera/img"
+    MQTT_TOPIC_CMD = c_.get('mqtt_cmd_topic', '/camera/cmd')
+    MQTT_TOPIC_IMG = c_.get('mqtt_img_topic', '/camera/img')
 
     # Initialize MQTT client
     mqtt_client = mqtt.Client()
+    mqtt_client.on_message = on_message
+    mqtt_client.connect(c_['mqtt_broker_ip'], c_['mqtt_broker_port'], 60)
+    mqtt_client.subscribe(MQTT_TOPIC_IMG)
+    mqtt_client.loop_start()  # Start the MQTT loop
 
     # Global variable to store the bot instance
     bot_instance = None
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     snap_requests = {}
 
     # Create the Telegram bot application
-    app = ApplicationBuilder().token(TOKEN).build()
+    app = ApplicationBuilder().token(c_['telegram_token']).build()
 
     # Add handlers
     app.add_handler(CommandHandler("start", start))
@@ -122,12 +122,6 @@ if __name__ == '__main__':
 
     # Set the global event loop immediately after creating the bot
     telegram_event_loop = asyncio.get_event_loop()
-
-
-    mqtt_client.on_message = on_message
-    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
-    mqtt_client.subscribe(MQTT_TOPIC_IMG)
-    mqtt_client.loop_start()  # Start the MQTT loop
 
     # Start the bot
     app.run_polling()

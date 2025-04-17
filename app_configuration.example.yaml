@@ -1,0 +1,8 @@
+mqtt:
+  broker_uri: mqtt://127.0.0.1:1234
+  topics:
+    commands: /camera/cmd
+    images:   /camera/img
+
+telegram:
+  token: numeric_id:key_text

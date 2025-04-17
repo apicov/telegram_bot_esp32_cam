@@ -4,6 +4,7 @@ from PIL import Image
 import paho.mqtt.client as mqtt
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from urllib.parse import urlparse
 import yaml
 import asyncio
 
@@ -89,22 +90,24 @@ if __name__ == '__main__':
     snap_requests = {}
 
     # Load mqtt and bot info
-    with open("application_configuration.yaml", "r") as config_file:
+    with open("app_configuration.yaml", "r") as config_file:
         c_ = yaml.safe_load(config_file)
 
     # MQTT settings
-    MQTT_TOPIC_CMD = c_.get('mqtt_cmd_topic', '/camera/cmd')
-    MQTT_TOPIC_IMG = c_.get('mqtt_img_topic', '/camera/img')
+    broker = urlparse(c_['mqtt']['broker_uri'])
+    topics = c_['mqtt']['topics']
+    MQTT_TOPIC_IMG = topics.get('images'  , '/camera/img')
+    MQTT_TOPIC_CMD = topics.get('commands', '/camera/cmd')
 
     # Initialize MQTT client
     mqtt_client = mqtt.Client()
     mqtt_client.on_message = on_message
-    mqtt_client.connect(c_['mqtt_broker_ip'], c_['mqtt_broker_port'], 60)
+    mqtt_client.connect(broker.hostname, broker.port or 1883, 60)
     mqtt_client.subscribe(MQTT_TOPIC_IMG)
     mqtt_client.loop_start()  # Start the MQTT loop
 
     # Create the Telegram bot application
-    app = ApplicationBuilder().token(c_['telegram_token']).build()
+    app = ApplicationBuilder().token(c_['telegram']['token']).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("snap", snap))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))

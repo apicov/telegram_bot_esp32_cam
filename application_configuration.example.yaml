@@ -1,8 +1,0 @@
-mqtt_broker_ip: 127.0.0.1
-mqtt_broker_port: 1234
-mqtt_cmd_topic: /camera/cmd
-mqtt_img_topic: /camera/img
-
-telegram_token: numeric_id:key_text
-
-

@@ -13,8 +13,7 @@ async def send_photo_async(chat_id, img_bytes):
     Send the IMAGE_BYTES as a photo to the given CHAT_ID.
     """
     try:
-        img_bytes.seek(0)  # Ensure the BytesIO pointer is at the start
-        await bot_instance.send_photo(chat_id, img_bytes, caption='Received Image')
+        await app.bot.send_photo(chat_id, img_bytes, caption='Received Image')
         print(f"{chat_id}: The snapshot was sent to the requester")
     except Exception as e:
         print(f"{chat_id}: ERROR sending snapshot: {e}")
@@ -36,17 +35,14 @@ def on_message(client, userdata, message):
     img.save(img_bytes, format='JPEG')
     img_bytes.seek(0)
 
-    # TODO: for now process the requests in order of arrival
-    # but need to make sure that the TODO note in the "snap"
-    # function is correct
+    # XXX: Without a retry mechanism, then it's OK to drop the
+    # chat_id from the snap_requests list
     chat_id = snap_requests.pop(0)
+
     try:
         asyncio.run_coroutine_threadsafe(
-            send_photo_async(chat_id, img_bytes), telegram_event_loop
-        )
+            send_photo_async(chat_id, img_bytes), telegram_event_loop)
     except Exception as e:
-        # TODO: do we need to keep the chat_id in the "snap_requests"
-        # list if we fail to schedule the coroutine?
         print(f"Error scheduling coroutine: {e}")
 
 
@@ -72,11 +68,12 @@ async def snap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if (id not in allowed_users):
         print(f"user {id} isn't allowed to use this command")
     else:
-        # TODO: We need to ensure that the snap request is enqueued in the
-        # snap_request list but also that the message is published to the MQTT
-        # broker in the same order
-        snap_requests.append(update.message.chat_id)
-        mqtt_client.publish(MQTT_TOPIC_CMD, "snap")
+        # ensure that the request is recorded and enqueued
+        # in the same order
+        async with enqueue_lock:
+            snap_requests.append(update.message.chat_id)
+            mqtt_client.publish(MQTT_TOPIC_CMD, "snap")
+
         await update.message.reply_text("Snap command sent!")
 
 
@@ -86,14 +83,14 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == '__main__':
-    # list to store the user who requested the snap
-    snap_requests = []
-
-    # Load mqtt and bot info
     with open("app_configuration.yaml", "r") as config_file:
         c_ = yaml.safe_load(config_file)
 
-    # list of allowed telegram user IDs
+    # keep track of users who requested the snap
+    snap_requests = []
+    enqueue_lock = asyncio.Lock()
+
+    # users that are allowed to call commands
     allowed_users = set(c_['telegram']['allowed_users'])
 
     # MQTT settings
@@ -109,18 +106,13 @@ if __name__ == '__main__':
     mqtt_client.subscribe(MQTT_TOPIC_IMG)
     mqtt_client.loop_start()
 
+    telegram_event_loop = asyncio.get_event_loop()
+
     # Create the Telegram bot application
     app = ApplicationBuilder().token(c_['telegram']['token']).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("snap", snap))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-
-    # Global variable to store the bot instance
-    bot_instance = app.bot
-
-    telegram_event_loop = asyncio.get_event_loop()
-
-    # Start the bot
     app.run_polling()
 
     # Stop the MQTT client when done

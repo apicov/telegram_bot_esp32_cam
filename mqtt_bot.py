@@ -31,10 +31,10 @@ def on_message(client, userdata, message):
         return
 
     # Prepare the image to bytes for sending via Telegram
-    img = Image.open(BytesIO(base64.b64decode(message.payload)))
     img_bytes = BytesIO()
+    img = Image.open(BytesIO(base64.b64decode(message.payload)))
     img.save(img_bytes, format='JPEG')
-    img_bytes.seek(0)  # Move to the beginning of the BytesIO buffer
+    img_bytes.seek(0)
 
     # TODO: for now process the requests in order of arrival
     # but need to make sure that the TODO note in the "snap"
@@ -72,7 +72,6 @@ async def snap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if (id not in allowed_users):
         print(f"user {id} isn't allowed to use this command")
     else:
-        user_chat_ids[id] = update.message.chat_id
         # TODO: We need to ensure that the snap request is enqueued in the
         # snap_request list but also that the message is published to the MQTT
         # broker in the same order
@@ -87,9 +86,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == '__main__':
-    # Dictionary to store chat_ids for each user
-    user_chat_ids = {}
-
     # list to store the user who requested the snap
     snap_requests = []
 
@@ -111,7 +107,7 @@ if __name__ == '__main__':
     mqtt_client.on_message = on_message
     mqtt_client.connect(broker.hostname, broker.port or 1883, 60)
     mqtt_client.subscribe(MQTT_TOPIC_IMG)
-    mqtt_client.loop_start()  # Start the MQTT loop
+    mqtt_client.loop_start()
 
     # Create the Telegram bot application
     app = ApplicationBuilder().token(c_['telegram']['token']).build()

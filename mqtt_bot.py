@@ -12,13 +12,12 @@ async def send_photo_async(chat_id, img_bytes):
     """
     Send the IMAGE_BYTES as a photo to the given CHAT_ID.
     """
-    print(f"{chat_id}: Preparing to send the photo")
     try:
         img_bytes.seek(0)  # Ensure the BytesIO pointer is at the start
         await bot_instance.send_photo(chat_id, img_bytes, caption='Received Image')
-        print(f"{chat_id}: The photo was sent")
+        print(f"{chat_id}: The snapshot was sent to the requester")
     except Exception as e:
-        print(f"{chat_id}: ERROR sending photo: {e}")
+        print(f"{chat_id}: ERROR sending snapshot: {e}")
 
 
 def on_message(client, userdata, message):
@@ -27,34 +26,25 @@ def on_message(client, userdata, message):
     from the MQTT CLIENT. If the message is an image, then that
     image forwarded
     """
-    print(f'Incoming message in {message.topic}')
     if message.topic == MQTT_TOPIC_IMG:
-        # Decode the base64 image
-        img_data = base64.b64decode(message.payload)
-
-        # Open the image using Pillow
-        img = Image.open(BytesIO(img_data))
-
-        # Convert image to bytes for sending via Telegram
+        # Prepare the image to bytes for sending via Telegram
+        img = Image.open(BytesIO(base64.b64decode(message.payload)))
         img_bytes = BytesIO()
         img.save(img_bytes, format='JPEG')
         img_bytes.seek(0)  # Move to the beginning of the BytesIO buffer
 
-        # Create a list of user IDs to process
-        # TODO: To use a dictionary to store the users' requests
-        # is an error for Python prior v3.7 because they're
-        # unordered, so there are chances that the picture is
-        # forwarded to the wrong user. So why not use a list instead?
-        user_ids_to_process = list(snap_requests.keys())
-        for user_id in user_ids_to_process:
-            chat_id = user_chat_ids.get(user_id)
-            if chat_id is not None:
-                try:
-                    asyncio.run_coroutine_threadsafe(send_photo_async(chat_id, img_bytes), telegram_event_loop)
-                    print(f"{chat_id}: Image scheduled to be sent")
-                except Exception as e:
-                    print(f"Error scheduling coroutine: {e}")
-                del snap_requests[user_id]
+        # TODO: for now process the requests in order of arrival
+        # but need to make sure that the TODO note in the "snap"
+        # function is correct
+        chat_id = snap_requests.pop(0)
+        try:
+            asyncio.run_coroutine_threadsafe(
+                send_photo_async(chat_id, img_bytes), telegram_event_loop
+            )
+        except Exception as e:
+            # TODO: do we need to keep the chat_id in the "snap_requests"
+            # list if we fail to schedule the coroutine?
+            print(f"Error scheduling coroutine: {e}")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -70,14 +60,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def snap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Handler for the "snap" command. It forwards the command to the MQTT broker.
+    Handler for the "snap" command. If the user is allowed, then it
+    forwards the command to the MQTT broker.
     """
     id = update.message.from_user.id
+    print(f"{id}: Received 'snap' command request via Telegram")
+
     if (id not in allowed_users):
-        print(f"user {id} isn't allowed to use the 'snap' command")
+        print(f"user {id} isn't allowed to use this command")
     else:
-        user_chat_ids[id] = update.message.chat_id  # Update the chat_id for the user
-        snap_requests[id] = True  # Mark this user as having requested a snap
+        user_chat_ids[id] = update.message.chat_id
+        # TODO: We need to ensure that the snap request is enqueued in the
+        # snap_request list but also that the message is published to the MQTT
+        # broker in the same order
+        snap_requests.append(update.message.chat_id)
         mqtt_client.publish(MQTT_TOPIC_CMD, "snap")
         await update.message.reply_text("Snap command sent!")
 
@@ -91,8 +87,8 @@ if __name__ == '__main__':
     # Dictionary to store chat_ids for each user
     user_chat_ids = {}
 
-    # Dictionary to store the user who requested the snap
-    snap_requests = {}
+    # list to store the user who requested the snap
+    snap_requests = []
 
     # Load mqtt and bot info
     with open("app_configuration.yaml", "r") as config_file:

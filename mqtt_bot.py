@@ -26,25 +26,28 @@ def on_message(client, userdata, message):
     from the MQTT CLIENT. If the message is an image, then that
     image forwarded
     """
-    if message.topic == MQTT_TOPIC_IMG:
-        # Prepare the image to bytes for sending via Telegram
-        img = Image.open(BytesIO(base64.b64decode(message.payload)))
-        img_bytes = BytesIO()
-        img.save(img_bytes, format='JPEG')
-        img_bytes.seek(0)  # Move to the beginning of the BytesIO buffer
+    if message.topic != MQTT_TOPIC_IMG:
+        print(f'Incoming MQTT message from unsupported topic {message.topic}')
+        return
 
-        # TODO: for now process the requests in order of arrival
-        # but need to make sure that the TODO note in the "snap"
-        # function is correct
-        chat_id = snap_requests.pop(0)
-        try:
-            asyncio.run_coroutine_threadsafe(
-                send_photo_async(chat_id, img_bytes), telegram_event_loop
-            )
-        except Exception as e:
-            # TODO: do we need to keep the chat_id in the "snap_requests"
-            # list if we fail to schedule the coroutine?
-            print(f"Error scheduling coroutine: {e}")
+    # Prepare the image to bytes for sending via Telegram
+    img = Image.open(BytesIO(base64.b64decode(message.payload)))
+    img_bytes = BytesIO()
+    img.save(img_bytes, format='JPEG')
+    img_bytes.seek(0)  # Move to the beginning of the BytesIO buffer
+
+    # TODO: for now process the requests in order of arrival
+    # but need to make sure that the TODO note in the "snap"
+    # function is correct
+    chat_id = snap_requests.pop(0)
+    try:
+        asyncio.run_coroutine_threadsafe(
+            send_photo_async(chat_id, img_bytes), telegram_event_loop
+        )
+    except Exception as e:
+        # TODO: do we need to keep the chat_id in the "snap_requests"
+        # list if we fail to schedule the coroutine?
+        print(f"Error scheduling coroutine: {e}")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -61,19 +61,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handler for the "start" command. It replies with the text "Hola".
     """
-    await update.message.reply_text("Hola")
+    id = update.message.from_user.id;
+    if (id not in allowed_users):
+        print(f"user {id} isn't allowed to use the 'start' command")
+    else:
+        await update.message.reply_text(f"Hola {id}")
 
 
 async def snap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handler for the "snap" command. It forwards the command to the MQTT broker.
     """
-    user_id = update.message.from_user.id
-    user_chat_ids[user_id] = update.message.chat_id  # Update the chat_id for the user
-    snap_requests[user_id] = True  # Mark this user as having requested a snap
-
-    mqtt_client.publish(MQTT_TOPIC_CMD, "snap")
-    await update.message.reply_text("Snap command sent!")
+    id = update.message.from_user.id
+    if (id not in allowed_users):
+        print(f"user {id} isn't allowed to use the 'snap' command")
+    else:
+        user_chat_ids[id] = update.message.chat_id  # Update the chat_id for the user
+        snap_requests[id] = True  # Mark this user as having requested a snap
+        mqtt_client.publish(MQTT_TOPIC_CMD, "snap")
+        await update.message.reply_text("Snap command sent!")
 
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):

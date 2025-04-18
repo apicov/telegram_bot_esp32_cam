@@ -1,12 +1,15 @@
+import asyncio
 import base64
 from io import BytesIO
+from urllib.parse import urlparse
+
+# external dependencies
 from PIL import Image
 import paho.mqtt.client as mqtt
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-from urllib.parse import urlparse
 import yaml
-import asyncio
+
 
 async def send_photo_async(chat_id, img_bytes):
     """
@@ -77,11 +80,6 @@ async def snap(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Snap command sent!")
 
 
-async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Your existing handle_photo code...
-    pass  # Implement your photo handling logic here
-
-
 if __name__ == '__main__':
     with open("app_configuration.yaml", "r") as config_file:
         c_ = yaml.safe_load(config_file)
@@ -112,7 +110,6 @@ if __name__ == '__main__':
     app = ApplicationBuilder().token(c_['telegram']['token']).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("snap", snap))
-    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.run_polling()
 
     # Stop the MQTT client when done

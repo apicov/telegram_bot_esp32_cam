@@ -6,3 +6,5 @@ mqtt:
 
 telegram:
   token: numeric_id:key_text
+  allowed_users:
+    - numeric_user_id

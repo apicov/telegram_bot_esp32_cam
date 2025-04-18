@@ -82,8 +82,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == '__main__':
-
-        # Dictionary to store chat_ids for each user
+    # Dictionary to store chat_ids for each user
     user_chat_ids = {}
 
     # Dictionary to store the user who requested the snap
@@ -92,6 +91,9 @@ if __name__ == '__main__':
     # Load mqtt and bot info
     with open("app_configuration.yaml", "r") as config_file:
         c_ = yaml.safe_load(config_file)
+
+    # list of allowed telegram user IDs
+    allowed_users = set(c_['telegram']['allowed_users'])
 
     # MQTT settings
     broker = urlparse(c_['mqtt']['broker_uri'])

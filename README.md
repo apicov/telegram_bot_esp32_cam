@@ -37,7 +37,7 @@ then the preferred IP address to use is the `127.0.0.1`.
 Run the bot by executing the following command:
 
 ```sh
-  python mqtt_bot.py
+  python esp32cam_bot.py
 ```
 
 ## Security
@@ -45,7 +45,7 @@ Run the bot by executing the following command:
 For security reasons, the "snap" commands are processed for allowed users
 *only*. The allowed users must be listed in the `allowed_users` setting in the
 configuration file, such list requires the users' *Telegram numeric user ID*;
-there are many ways to retrieve this ID; one of them is to ask the user to send
+there are many ways to retrieve this ID, one of them is to ask the user to send
 the "/start" command to the running instance of the bot, then the bot will reply
 the message `Hola <numeric_user_id>`. Once the `allowed_users` are configured, then
 the bot needs to be restarted.

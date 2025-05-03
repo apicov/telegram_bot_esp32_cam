@@ -54,10 +54,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Handler for the "start" command. It replies with the text "Hola".
     """
     id = update.message.from_user.id;
-    if (id not in allowed_users):
-        print(f"user {id} isn't allowed to use the 'start' command")
-    else:
-        await update.message.reply_text(f"Hola {id}")
+    await update.message.reply_text(f"Hola {id}")
 
 
 async def snap(update: Update, context: ContextTypes.DEFAULT_TYPE):

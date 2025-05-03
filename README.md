@@ -40,12 +40,12 @@ Run the bot by executing the following command:
   python mqtt_bot.py
 ```
 
-# Security
+## Security
 
 For security reasons, the "snap" commands are processed for allowed users
-*only*. The allowed must be listed in the `allowed_users` field of the
-configuration file, such list requires the user's *Telegram numeric user ID*;
-there are many ways to retrieve this ID, one of them is to ask the user to send
+*only*. The allowed users must be listed in the `allowed_users` setting in the
+configuration file, such list requires the users' *Telegram numeric user ID*;
+there are many ways to retrieve this ID; one of them is to ask the user to send
 the "/start" command to the running instance of the bot, then the bot will reply
 the message `Hola <numeric_user_id>`. Once the `allowed_users` are configured, then
 the bot needs to be restarted.

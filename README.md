@@ -37,7 +37,7 @@ then the preferred IP address to use is the `127.0.0.1`.
 Run the bot by executing the following command:
 
 ```sh
-  python esp32cam_bot.py
+  python esp32cam_snapbot.py
 ```
 
 ## Security
